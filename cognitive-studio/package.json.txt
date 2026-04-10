@@ -1,0 +1,27 @@
+{
+  "name": "cognitive-studio",
+  "version": "1.0.0",
+  "description": "进化型多AI协作思考系统 - 认知增强工作室",
+  "main": "index.html",
+  "scripts": {
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "node server.js",
+    "client": "npx serve . -p 5500",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-all": "npm install"
+  },
+  "keywords": ["ai", "collaboration", "cognitive", "llm", "multi-agent"],
+  "author": "董子硕 <your.email@example.com>",
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.1",
+    "serve": "^14.2.1"
+  }
+}

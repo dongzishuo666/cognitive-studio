@@ -1,0 +1,1869 @@
+<!--
+    认知增强工作室 - 进化型多AI协作思考系统
+    Copyright (C) 2025 董子硕
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>认知增强工作室 | 进化型多AI协作系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.4.2/mammoth.browser.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            max-width: 1400px;
+            margin: 20px auto;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
+            background: #1e1e2f;
+            color: #eee;
+            padding: 0 15px;
+            position: relative;
+        }
+        h2 { margin-top: 0; }
+        .config-panel {
+            background: #2d2d3a;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .config-header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .model-config {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 10px;
+            min-height: 100px;
+        }
+        .model-card {
+            background: #3a3a4a;
+            border-radius: 10px;
+            padding: 10px;
+            flex: 1;
+            min-width: 150px;
+            transition: box-shadow 0.2s;
+        }
+        .model-card.sort-mode-active { cursor: grab; }
+        .model-card.sort-mode-active:active { cursor: grabbing; }
+        .model-card h3 {
+            margin: 0 0 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+        }
+        .model-card input {
+            width: 100%;
+            padding: 6px;
+            border-radius: 6px;
+            border: none;
+            background: #2d2d3a;
+            color: #eee;
+            margin-top: 5px;
+            font-size: 11px;
+        }
+        .model-card label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .model-desc { font-size: 10px; color: #aaa; margin-top: 4px; line-height: 1.3; }
+        .model-status { font-size: 10px; margin-top: 4px; }
+        .healthy { color: #4caf50; }
+        .unhealthy { color: #f44336; }
+        .key-error { color: #ffaa66; }
+        #chat {
+            height: 480px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            padding: 12px;
+            background: #2d2d3a;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .topic-bar {
+            background: #2d2d3a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffaa66;
+            word-break: break-word;
+            white-space: normal;
+        }
+        .message {
+            margin: 8px 0;
+            padding: 8px 12px;
+            border-radius: 12px;
+            max-width: 85%;
+            clear: both;
+            word-wrap: break-word;
+            position: relative;
+            transition: background 0.2s;
+        }
+        .message.long-press-active { background: #4a4a5a; }
+        .user { background: #0a6e6e; float: right; text-align: right; }
+        .ai {
+            background: #3a3a4a;
+            float: left;
+            border-left-width: 4px;
+            border-left-style: solid;
+        }
+        .ai-deepseek { border-left-color: #3498db; }
+        .ai-gemini { border-left-color: #2ecc71; }
+        .ai-cohere { border-left-color: #e67e22; }
+        .ai-grok { border-left-color: #9b59b6; }
+        .ai-perplexity { border-left-color: #f1c40f; }
+        .ai-claude { border-left-color: #e74c3c; }
+        .ai-doubao { border-left-color: #1abc9c; }
+        .ai-volcano { border-left-color: #f39c12; }
+        .ai-fangzhou { border-left-color: #ff6b6b; }
+        .ai-doubaopro { border-left-color: #ffaa66; }
+        .ai-openai { border-left-color: #95a5a6; }
+        .system {
+            background: #2d2d2d;
+            text-align: center;
+            font-style: italic;
+            color: #aaa;
+            float: none;
+            max-width: 100%;
+            margin: 5px auto;
+        }
+        .memory {
+            background: #1e4a3a;
+            border-left: 4px solid #4caf50;
+            float: none;
+            max-width: 95%;
+            margin: 8px auto;
+        }
+        .attachment {
+            background: #2c5a6e;
+            border-left: 4px solid #f39c12;
+            float: none;
+            max-width: 95%;
+            margin: 8px auto;
+        }
+        .delete-msg {
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            cursor: pointer;
+            opacity: 0;
+            font-size: 14px;
+            color: #ff8888;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 0 4px;
+            transition: opacity 0.2s;
+        }
+        .message:hover .delete-msg { opacity: 0.6; }
+        .delete-msg:hover { opacity: 1 !important; color: #ff5555; background: rgba(0,0,0,0.5); }
+        .clear { clear: both; }
+        .message strong, .message b { color: #ffaa66; font-weight: bold; }
+        .message li, .message .list-item { color: #88ccff; }
+        .scroll-bottom-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #0a6e6e;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .scroll-bottom-btn:hover { background: #0e8a8a; }
+        .input-area, .auto-area {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        input, button, select {
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+        }
+        input, select { flex: 1; background: #2d2d3a; color: #eee; }
+        button {
+            background: #0a6e6e;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover { background: #0e8a8a; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        .mode-select { width: auto; min-width: 140px; }
+        .custom-mode-input, .roleplay-inputs { display: none; flex:1; gap: 8px; }
+        .custom-mode-input.active, .roleplay-inputs.active { display: flex; }
+        .help-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #555;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 6px;
+        }
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            color: #eee;
+            padding: 12px;
+            border-radius: 12px;
+            max-width: 360px;
+            z-index: 1000;
+            font-size: 12px;
+            pointer-events: none;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top:0; left:0;
+            width:100%; height:100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #2d2d3a;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80%;
+            overflow-y: auto;
+            padding: 20px;
+            position: relative;
+        }
+        .modal-close-btn {
+            position: sticky;
+            top: 12px;
+            float: right;
+            background: #c0392b;
+            border: none;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 10;
+            margin-bottom: 10px;
+        }
+        .modal-close-btn:hover { background: #e74c3c; }
+        .memory-item {
+            background: #3a3a4a;
+            margin: 12px 0;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .memory-actions { display: flex; gap: 8px; margin-top: 8px; }
+        .memory-actions button { background: #555; padding: 4px 8px; font-size: 12px; }
+        .full-content-modal {
+            display: none;
+            position: fixed;
+            top:0; left:0;
+            width:100%; height:100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+        }
+        .full-content-modal .modal-card {
+            background: #2d2d3a;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80%;
+            overflow-y: auto;
+            padding: 20px;
+            color: #eee;
+            position: relative;
+        }
+        .full-content-modal .modal-close-btn {
+            position: sticky;
+            top: 12px;
+            float: right;
+        }
+        .search-box { margin-bottom: 12px; width: 100%; }
+        .lang-switch { margin-left: auto; }
+        .guide-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+        .guide-card {
+            background: #2d2d3a;
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 500px;
+            pointer-events: auto;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .guide-card h3 { margin-top: 0; }
+        .guide-card button { background: #0a6e6e; margin-top: 16px; padding: 8px 20px; }
+        .guide-highlight {
+            position: relative;
+            z-index: 10001;
+            box-shadow: 0 0 0 4px #ffaa66, 0 0 0 8px rgba(0,0,0,0.3);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .cognitive-controls {
+            background: #2d2d3a;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            font-size: 13px;
+        }
+        .consensus-threshold {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        @media print {
+            body { background: white; color: black; }
+            .config-panel, .auto-area, .input-area, .scroll-bottom-btn, .delete-msg, button, .help-icon, .lang-switch, #guideOverlay, .cognitive-controls { display: none; }
+            .message { background: white !important; color: black !important; border: 1px solid #ccc; }
+            .ai, .user, .system, .memory, .attachment { background: white; color: black; }
+            .message strong, .message b { color: #d9534f; }
+        }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .model-card { min-width: 120px; }
+            button, input, select { font-size: 12px; padding: 8px; }
+            .delete-msg { font-size: 12px; top: 2px; right: 4px; opacity: 0.6; }
+            .message { max-width: 95%; }
+            .scroll-bottom-btn { width: 40px; height: 40px; font-size: 20px; bottom: 20px; right: 20px; }
+            .full-content-modal .modal-card { width: 95%; }
+        }
+    </style>
+</head>
+<body>
+<div id="guideOverlay" class="guide-overlay" style="display: none;">
+    <div class="guide-card">
+        <h3 id="guideTitle">🎉 欢迎使用认知增强工作室</h3>
+        <p id="guideText">这是一个多AI协作思考系统。你可以同时启用多个AI模型，让它们围绕你的问题自动讨论，并生成结构化总结。</p>
+        <p id="guideCounter"></p>
+        <button id="guideLangBtn" style="background:#555;">🌐 中文/English</button>
+        <button id="guideNextBtn">下一步</button>
+        <button id="guideSkipBtn" style="background:#555; margin-left:10px;">跳过</button>
+    </div>
+</div>
+
+<h2 id="mainTitle">🧠 认知增强工作室 | 进化型多AI协作系统</h2>
+<div class="config-panel">
+    <div class="config-header">
+        <strong id="configLabel">⚙️ 模型配置</strong>
+        <button id="exportConfigBtn" style="background:#16a085;">📤 <span id="exportText">导出配置</span></button>
+        <button id="importConfigBtn" style="background:#2c5a6e;">📥 <span id="importText">导入配置</span></button>
+        <button id="clearAllKeysBtn" style="background:#c0392b;">🗑️ <span id="clearKeysText">清除所有API Key</span></button>
+        <button id="toggleSortModeBtn" style="background:#8e44ad;">🔀 <span id="sortModeText">排序模式关闭</span></button>
+        <button id="langSwitchBtn" class="lang-switch" style="background:#555;">🌐 <span id="langBtnText">English</span></button>
+        <span id="saveStatus"></span>
+    </div>
+    <div class="model-config" id="modelCards"></div>
+    <button id="saveKeysBtn"><span id="saveKeysText">保存所有API Key</span></button>
+</div>
+
+<div class="cognitive-controls">
+    <label><input type="checkbox" id="enableCognitiveContinuity" checked> <span id="cognitiveContinuityText">🧠 认知连续性</span></label>
+    <label><input type="checkbox" id="enableConflictHandling" checked> <span id="conflictHandlingText">⚡ 自动处理框架冲突</span></label>
+    <label><input type="checkbox" id="enableSelfCriticism" checked> <span id="selfCriticismText">🪞 自我批判意识</span></label>
+    <label><span id="sensitivityLabel">📊 框架演化敏感度</span>
+        <select id="frameSensitivity">
+            <option value="low">低（尽量沿用）</option>
+            <option value="medium" selected>中（平衡）</option>
+            <option value="high">高（易重构）</option>
+        </select>
+    </label>
+    <div class="consensus-threshold">
+        <span id="consensusThresholdLabel">🎯 共识严格程度</span>
+        <select id="consensusThreshold">
+            <option value="loose">宽松</option>
+            <option value="medium" selected>标准</option>
+            <option value="strict">严格</option>
+        </select>
+    </div>
+    <button id="resetCognitiveFrameBtn" style="background:#c0392b;">🔄 <span id="resetFrameText">重置认知框架</span></button>
+</div>
+
+<div id="topicBar" class="topic-bar">💡 <span id="topicPrefix">当前讨论主题：</span><span id="topicValue">未设置</span></div>
+<div id="chat"></div>
+<button id="scrollBottomBtn" class="scroll-bottom-btn" title="Scroll to bottom">↓</button>
+
+<div class="input-area">
+    <input type="text" id="userInput" placeholder="输入消息，所有启用的AI会同时回复...">
+    <button id="sendBtn"><span id="sendText">发送</span></button>
+    <button id="stopSendBtn" style="background:#c0392b; display:none;"><span id="stopSendText">停止生成</span></button>
+    <label style="display:inline-flex; align-items:center; gap:4px;"><input type="checkbox" id="teamPerceptionCheckbox" checked> <span id="teamPerceptionText">团队感知</span></label>
+    <label style="display:inline-flex; align-items:center; gap:4px;"><input type="checkbox" id="serialModeCheckbox"> <span id="serialModeText">串行协作</span></label>
+    <button id="continueBtn" style="background:#2c5a6e;">✍️ <span id="continueText">继续</span></button>
+    <button id="uploadBtn" style="background:#f39c12;">📎 <span id="uploadText">上传附件</span></button>
+    <button id="clearLastAttachmentBtn" style="background:#e67e22;">🗑️ <span id="clearAttachText">清除最后附件影响</span></button>
+    <button id="cnkiBtn" style="background:#2c5a6e;">📚 <span id="cnkiText">知网增强</span></button>
+    <button id="summarizeBtn" style="background:#2c5a6e;">📝 <span id="summarizeText">总结并记忆</span></button>
+    <span class="help-icon" id="summaryHelp">?</span>
+    <button id="openMemoryBtn" style="background:#8e44ad;">📚 <span id="memoryBtnText">记忆库</span></button>
+    <button id="exportMarkdownBtn" style="background:#16a085;">📄 <span id="exportMdText">导出MD</span></button>
+    <button id="exportPdfBtn" style="background:#c0392b;">📑 <span id="exportPdfText">导出PDF</span></button>
+    <button id="clearKeepMemoryBtn" style="background:#c0392b;">🗑️ <span id="clearKeepText">清空对话(保留记忆)</span></button>
+    <button id="cleanOldMsgBtn" style="background:#e67e22;">🧹 <span id="cleanOldText">清理旧消息</span></button>
+</div>
+<input type="file" id="fileInput" style="display:none" accept=".txt,.md,.csv,.json,.docx,.xlsx,.xls">
+
+<div class="auto-area">
+    <div class="discuss-mode">
+        <span id="discussPeopleLabel">讨论人数：</span>
+        <label><input type="radio" name="discussCount" value="2" checked> <span id="twoPeople">2人</span></label>
+        <label><input type="radio" name="discussCount" value="3"> <span id="threePeople">3人</span></label>
+    </div>
+    <select id="ai1Select"></select>
+    <select id="ai2Select"></select>
+    <select id="ai3Select" style="display:none"></select>
+    <select id="purposeMode" class="mode-select"></select>
+    <div id="roleplayInputs" class="roleplay-inputs">
+        <input type="text" id="roleA" placeholder="角色A (例如: 牛顿)" style="flex:1;">
+        <input type="text" id="roleB" placeholder="角色B (例如: 爱因斯坦)" style="flex:1;">
+        <div style="display: flex; gap: 5px;">
+            <button class="role-preset" data-a="牛顿" data-b="爱因斯坦">🧠 牛顿 vs 爱因斯坦</button>
+            <button class="role-preset" data-a="孔子" data-b="苏格拉底">🌍 孔子 vs 苏格拉底</button>
+            <button class="role-preset" data-a="乔布斯" data-b="马斯克">💡 乔布斯 vs 马斯克</button>
+        </div>
+    </div>
+    <input type="text" id="customModeInput" class="custom-mode-input" placeholder="自定义指令..." style="display:none; flex:1;">
+    <input type="text" id="topicInput" placeholder="讨论主题" style="flex:2;" oninput="updateTopicBar()">
+    <input type="number" id="roundsInput" placeholder="轮数" value="3" min="1" max="20" style="width: 80px;">
+    <label><input type="checkbox" id="untilConsensusCheckbox"> <span id="untilConsensusText">直到共识</span></label>
+    <!-- 删除冗余的共识敏感度下拉，合并到上面的共识严格程度 -->
+    <button id="startAutoBtn"><span id="startAutoText">开始自动讨论</span></button>
+    <button id="stopAutoBtn" disabled><span id="stopAutoText">停止</span></button>
+    <button id="smartTeamBtn" style="background:#8e44ad;">🧠 <span id="smartTeamText">智能组队讨论</span></button>
+</div>
+
+<div id="memoryModal" class="modal">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="memoryModalCloseBtn">✕ 关闭</button>
+        <h3 id="memoryModalTitle">记忆库与认知进化链</h3>
+        <input type="text" id="memorySearch" class="search-box" placeholder="搜索关键词...">
+        <div id="memoryList"></div>
+        <button id="closeMemoryModal" style="margin-top: 12px;"><span id="closeModalText">关闭</span></button>
+    </div>
+</div>
+<div id="fullContentModal" class="full-content-modal">
+    <div class="modal-card">
+        <button class="modal-close-btn" id="fullContentModalCloseBtn">✕ 关闭</button>
+        <h3 id="fullContentTitle">完整记忆内容</h3>
+        <div id="fullContentText" style="white-space: pre-wrap; word-wrap: break-word; background: #1e1e2f; padding: 12px; border-radius: 8px;"></div>
+        <button id="closeFullModal" style="margin-top: 12px;"><span id="closeFullText">关闭</span></button>
+    </div>
+</div>
+
+<script>
+    // ==================== 模型定义 ====================
+    const MODELS = {
+        deepseek: { id:"deepseek", name:"DeepSeek", color:"🔵", apiKey:"", enabled:true, model:"deepseek-chat", description:"逻辑严谨", healthy:true },
+        gemini: { id:"gemini", name:"Gemini", color:"🟢", apiKey:"", enabled:false, model:"gemini-2.5-flash", description:"快速轻量", healthy:true },
+        cohere: { id:"cohere", name:"Cohere", color:"🟠", apiKey:"", enabled:false, model:"command-r", description:"指令跟随", healthy:true },
+        grok: { id:"grok", name:"Grok", color:"💬", apiKey:"", enabled:false, model:"x-ai/grok-4-fast:free", description:"幽默敢说", healthy:true },
+        perplexity: { id:"perplexity", name:"Perplexity", color:"🔍", apiKey:"", enabled:false, model:"llama-3.1-sonar-large-128k-online", description:"联网搜索", healthy:true },
+        claude: { id:"claude", name:"Claude", color:"🟣", apiKey:"", enabled:false, model:"anthropic/claude-3.5-sonnet", description:"文笔细腻", healthy:true },
+        doubao: { id:"doubao", name:"豆包 (APIYI)", color:"🟡", apiKey:"", enabled:false, model:"doubao-seed-1-6-250615", description:"中文出色", healthy:true },
+        volcano: { id:"volcano", name:"火山豆包", color:"🌋", apiKey:"", enabled:false, model:"doubao-seed-1-6-250615", description:"火山官方", healthy:true },
+        fangzhou: { id:"fangzhou", name:"火山方舟", color:"🔥", apiKey:"", enabled:false, model:"doubao-pro-32k", description:"豆包Pro", healthy:true },
+        doubaoPro: { id:"doubaoPro", name:"Doubao-2.0-Pro", color:"🌟", apiKey:"", enabled:false, model:"doubao-seed-2-0-pro", description:"旗舰级推理", healthy:true },
+        openai: { id:"openai", name:"OpenAI", color:"🤖", apiKey:"", enabled:false, model:"gpt-3.5-turbo", description:"通用能力强", healthy:true }
+    };
+
+     const PROXY_URL = "http://localhost:3001/api/proxy";请替换为实际后端地址
+    // ==================== 国际化资源 ====================
+    const I18N = {
+        zh: {
+            title: "🧠 认知增强工作室 | 进化型多AI协作系统",
+            configLabel: "⚙️ 模型配置", exportText: "导出配置", importText: "导入配置", clearKeysText: "清除所有API Key", saveKeysText: "保存所有API Key",
+            topicPrefix: "当前讨论主题：", sendText: "发送", stopSendText: "停止生成", continueText: "继续",
+            uploadText: "上传附件", clearAttachText: "清除最后附件影响", cnkiText: "知网增强", summarizeText: "总结并记忆",
+            memoryBtnText: "记忆库", exportMdText: "导出MD", exportPdfText: "导出PDF", clearKeepText: "清空对话(保留记忆)", cleanOldText: "清理旧消息",
+            discussPeopleLabel: "讨论人数：", twoPeople: "2人", threePeople: "3人", untilConsensusText: "直到共识",
+            startAutoText: "开始自动讨论", stopAutoText: "停止", smartTeamText: "智能组队讨论",
+            memoryModalTitle: "记忆库与认知进化链", closeModalText: "关闭", fullContentTitle: "完整记忆内容", closeFullText: "关闭", langBtnText: "English",
+            sortModeText: "排序模式关闭", sortModeActive: "排序模式开启", teamPerceptionText: "团队感知", serialModeText: "串行协作",
+            cognitiveContinuityText: "🧠 认知连续性", conflictHandlingText: "⚡ 自动处理框架冲突", selfCriticismText: "🪞 自我批判意识",
+            sensitivityLabel: "📊 框架演化敏感度", resetFrameText: "重置认知框架", consensusThresholdLabel: "🎯 共识严格程度",
+            purposeOptions: { free:"自由讨论", critical:"批判性分析", constructive:"建设性建议", debate:"正反辩论", summary:"总结提炼", academic:"学术深度", simple:"通俗易懂", cross:"跨文化比较", creative:"创意发散", factFinding:"获取结果", personalGrowth:"个人建设", roleplay:"角色扮演", custom:"自定义" },
+            placeholders: { customMode:"自定义指令...", roleA:"角色A (例如: 牛顿)", roleB:"角色B (例如: 爱因斯坦)", topic:"讨论主题", userInput:"输入消息，所有启用的AI会同时回复..." },
+            guide: { title:"🎉 欢迎使用认知增强工作室", text:"这是一个多AI协作思考系统。你可以同时启用多个AI模型，让它们围绕你的问题自动讨论，并生成结构化总结。", step1:"配置模型API Key并启用。", step2:"设置主题，选择AI和模式。", step3:"点击开始自动讨论。", step4:"总结自动存入记忆库。", next:"下一步", skip:"跳过", langBtn:"🌐 中文/English" }
+        },
+        en: {
+            title: "🧠 Cognitive Enhancement Studio | Evolutionary Multi-AI System",
+            configLabel: "⚙️ Model Config", exportText: "Export", importText: "Import", clearKeysText: "Clear Keys", saveKeysText: "Save Keys",
+            topicPrefix: "Topic:", sendText: "Send", stopSendText: "Stop", continueText: "Continue",
+            uploadText: "Upload", clearAttachText: "Clear Attachment", cnkiText: "CNKI", summarizeText: "Summarize",
+            memoryBtnText: "Memory", exportMdText: "Export MD", exportPdfText: "Export PDF", clearKeepText: "Clear Chat", cleanOldText: "Clean Old",
+            discussPeopleLabel: "Participants:", twoPeople: "2", threePeople: "3", untilConsensusText: "Until Consensus",
+            startAutoText: "Start", stopAutoText: "Stop", smartTeamText: "Smart Team",
+            memoryModalTitle: "Memory & Cognitive Evolution", closeModalText: "Close", fullContentTitle: "Full Content", closeFullText: "Close", langBtnText: "中文",
+            sortModeText: "Sort Mode Off", sortModeActive: "Sort Mode On", teamPerceptionText: "Team Perception", serialModeText: "Serial Mode",
+            cognitiveContinuityText: "🧠 Cognitive Continuity", conflictHandlingText: "⚡ Auto Conflict Handling", selfCriticismText: "🪞 Self-Criticism",
+            sensitivityLabel: "📊 Evolution Sensitivity", resetFrameText: "Reset Frame", consensusThresholdLabel: "🎯 Consensus Strictness",
+            purposeOptions: { free:"Free", critical:"Critical", constructive:"Constructive", debate:"Debate", summary:"Summary", academic:"Academic", simple:"Simple", cross:"Cross-cultural", creative:"Creative", factFinding:"Fact Finding", personalGrowth:"Growth", roleplay:"Roleplay", custom:"Custom" },
+            placeholders: { customMode:"Custom instruction", roleA:"Role A", roleB:"Role B", topic:"Topic", userInput:"Type message..." },
+            guide: { title:"🎉 Welcome to Cognitive Studio", text:"A multi-AI collaboration system for deep thinking and structured summaries.", step1:"Configure API keys and enable models.", step2:"Set topic, choose AI and mode.", step3:"Start auto discussion.", step4:"Summaries saved to memory.", next:"Next", skip:"Skip", langBtn:"🌐 中文/English" }
+        }
+    };
+    let currentLang = localStorage.getItem("app_lang") || "zh";
+    function t(key) { return I18N[currentLang][key] || key; }
+    function tPlaceholder(key) { return I18N[currentLang].placeholders[key] || key; }
+
+    // ==================== 辅助函数 ====================
+    function formatMarkdown(text) {
+        if (!text) return "";
+        let safe = text.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+        safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        safe = safe.replace(/^(\d+\.\s+)(.*?)$/gm, '<span class="list-item">$1$2</span>');
+        safe = safe.replace(/^(\-\s+)(.*?)$/gm, '<span class="list-item">$1$2</span>');
+        safe = safe.replace(/\n/g, '<br>');
+        return safe;
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // 改进的记忆检索（增加相关性阈值，可调）
+    let memoryRelevanceThreshold = 1; // 默认得分>0即可，后续可加滑块
+    function retrieveRelevantMemories(topic, limit = 3) {
+        const memories = JSON.parse(localStorage.getItem("ai_memory_list") || "[]");
+        if (!memories.length) return [];
+        const keywords = topic.toLowerCase().split(/\s+/).filter(w => w.length > 1);
+        const scored = memories.map(mem => {
+            let score = 0;
+            const content = (mem.cognitiveFrame || "") + " " + (mem.deepInsights || []).join(" ") + " " + mem.content;
+            const lower = content.toLowerCase();
+            for (let kw of keywords) {
+                if (lower.includes(kw)) score += 2;
+            }
+            if (lower.includes(topic.toLowerCase())) score += 5;
+            return { mem, score };
+        });
+        scored.sort((a,b) => b.score - a.score);
+        const filtered = scored.filter(s => s.score >= memoryRelevanceThreshold).slice(0, limit);
+        return filtered.map(s => s.mem);
+    }
+
+    // 迁移旧记忆结构
+    function migrateMemoryStructure() {
+        let memories = JSON.parse(localStorage.getItem("ai_memory_list") || "[]");
+        let changed = false;
+        for (let mem of memories) {
+            if (!mem.cognitiveFrame) {
+                mem.cognitiveFrame = "";
+                mem.deepInsights = [];
+                mem.frameEvolution = "";
+                mem.unresolvedTensions = [];
+                mem.relatedTo = [];
+                changed = true;
+            }
+        }
+        if (changed) localStorage.setItem("ai_memory_list", JSON.stringify(memories));
+    }
+
+    // 系统提示词（增加禁止自我引用）
+    function getSystemPrompt(enableSelfCriticism = true) {
+        const base = currentLang === "zh" ?
+`你是一个多AI认知增强系统中的一员，具有**认知连续性**和**自我批判意识**。你的目标是通过协作帮助用户构建连贯、自洽、可进化的世界观。
+
+**认知连续性**：
+- 优先调用已有认知框架来理解新信息。回答时可以说：“基于我们之前形成的认知框架，我认为……”
+- 如果新信息与框架冲突，请明确指出冲突，并尝试修正框架或记录张力。
+
+**自我批判意识**：
+- 认识到你自己的观点可能基于不完整信息或特定视角，因此可能片面。
+- 在回答中，如果合适，请主动反思：“我的观点是否可能遗漏了其他重要角度？”
+- 如果发现自己之前的发言有误或不完整，主动修正。
+
+**协作与批判**：
+- 对其他AI的发言，只有在存在明显事实错误或逻辑漏洞时才进行批判，否则优先补充、延伸或整合。
+- **重要：你不得引用或评价自己历史发言。你只能引用其他AI或用户的发言。如果需要延续自己的逻辑，可以说“继续我之前的思路……”，但不得以“正如我之前所说”的形式引用自己。**
+
+**避免强行总结**：在总结时，诚实反映分歧和未决问题，不要强行统一。
+
+请使用Markdown格式，对重要观点用**粗体**包裹。`
+:
+`You are a member of a multi-AI cognitive enhancement system with **cognitive continuity** and **self-criticism awareness**. Your goal is to help users build a coherent, self-consistent, and evolvable worldview.
+
+**Cognitive Continuity**:
+- Prioritize existing cognitive frameworks when understanding new information. You may say: "Based on our previously formed framework, I think..."
+- If new information conflicts with the framework, explicitly state the conflict and attempt to revise the framework or record the tension.
+
+**Self-Criticism**:
+- Recognize that your own views may be based on incomplete information or a specific perspective, and thus may be one-sided.
+- When appropriate, actively reflect: "Could my view be missing other important angles?"
+- If you find your previous statements incorrect or incomplete, voluntarily correct them.
+
+**Collaboration and Criticism**:
+- Only criticize other AIs' statements when there are clear factual errors or logical flaws; otherwise prioritize supplementing, extending, or integrating.
+- **Important: Do not quote or evaluate your own historical statements. You may only quote other AIs or the user. To continue your own logic, you may say "Continuing my previous thought..." but not "As I said before".**
+
+**Avoid forced summaries**: Honestly reflect disagreements and unresolved issues; do not force unification.
+
+Use Markdown format, wrapping important points in **bold**.`;
+        return base;
+    }
+
+    // ==================== 全局变量 ====================
+    let globalHistory = [];
+    let autoActive = false, autoAbort = false;
+    let messageIdCounter = 0;
+    let lastAIMessage = null;
+    let userScrolledUp = false;
+    let activeControllers = [];
+    let modelOrder = [];
+    let sortMode = false;
+    let isGeneratingSummary = false;
+    let isSummarizing = false;  // 防止重复总结
+
+    const MEMORY_LIST_KEY = "ai_memory_list";
+    const CUSTOM_MODE_KEY = "custom_mode_instruction";
+
+    const chatContainer = document.getElementById("chat");
+    const scrollBottomBtn = document.getElementById("scrollBottomBtn");
+
+    // 节流
+    function throttle(fn, delay) {
+        let last = 0;
+        return function(...args) {
+            const now = Date.now();
+            if (now - last > delay) {
+                last = now;
+                fn.apply(this, args);
+            }
+        };
+    }
+
+    function checkScrollPosition() {
+        if (!chatContainer) return;
+        const isBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 50;
+        userScrolledUp = !isBottom;
+        scrollBottomBtn.style.display = isBottom ? "none" : "flex";
+    }
+    function scrollToBottom() {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        userScrolledUp = false;
+        scrollBottomBtn.style.display = "none";
+    }
+    chatContainer.addEventListener("scroll", throttle(checkScrollPosition, 50));
+    scrollBottomBtn.addEventListener("click", scrollToBottom);
+
+    // 改进：清空对话（保留记忆）不刷新页面
+    function clearChatKeepMemory() {
+        if (confirm(currentLang === "zh" ? "清空普通对话，保留记忆？" : "Clear chat but keep memory?")) {
+            globalHistory = [];
+            // 清空聊天区域DOM
+            while (chatContainer.firstChild) {
+                chatContainer.removeChild(chatContainer.firstChild);
+            }
+            messageIdCounter = 0;
+            addSystemMessage(currentLang === "zh" ? "对话已清空，记忆库保留。" : "Chat cleared, memory retained.");
+        }
+    }
+
+    function cleanOldMessagesManually() {
+        const msgs = document.querySelectorAll("#chat .message");
+        if (msgs.length <= 100) {
+            addSystemMessage(currentLang === "zh" ? "消息数不足100条，无需清理。" : "Less than 100 messages, no need to clean.");
+            return;
+        }
+        const toRemove = msgs.length - 100;
+        for (let i = 0; i < toRemove; i++) msgs[i].remove();
+        // 重新同步 globalHistory（基于现有DOM消息）
+        const keptMsgs = document.querySelectorAll("#chat .message");
+        const newHistory = [];
+        keptMsgs.forEach(msg => {
+            const id = msg.id;
+            const existing = globalHistory.find(h => h.id === id);
+            if (existing) newHistory.push(existing);
+        });
+        globalHistory = newHistory;
+        addSystemMessage((currentLang === "zh" ? `已清理 ${toRemove} 条旧消息` : `Cleaned ${toRemove} old messages`));
+    }
+
+    function updateTopicBar() {
+        const val = document.getElementById("topicInput").value.trim();
+        document.getElementById("topicValue").innerText = val || (currentLang === "zh" ? "未设置" : "Not set");
+        localStorage.setItem("last_topic", val);
+    }
+    // ==================== addMessage 使用事件委托处理删除（改进） ====================
+    // 在 chatContainer 上监听 click 事件，不再重复绑定
+    chatContainer.addEventListener('click', (e) => {
+        const delBtn = e.target.closest('.delete-msg');
+        if (!delBtn) return;
+        e.stopPropagation();
+        const msgDiv = delBtn.closest('.message');
+        if (!msgDiv) return;
+        if (confirm(currentLang === "zh" ? "确定要删除这条消息吗？删除后不可恢复。" : "Are you sure you want to delete this message?")) {
+            const msgId = msgDiv.id;
+            msgDiv.remove();
+            let idx = globalHistory.findIndex(h => h.id === msgId);
+            if (idx !== -1) globalHistory.splice(idx, 1);
+        }
+    });
+
+    function addMessage(role, content, modelId = "", extraClass = "") {
+        const chatDiv = document.getElementById("chat");
+        const msgId = `msg-${messageIdCounter++}`;
+        const msgDiv = document.createElement("div");
+        let className = `message ${role === "user" ? "user" : (role === "system" ? "system" : "ai")}`;
+        if (extraClass) className += ` ${extraClass}`;
+        if (role === "ai" && modelId) className += ` ai-${modelId}`;
+        msgDiv.className = className;
+        msgDiv.id = msgId;
+        let inner = "";
+        if (role === "ai") {
+            inner = `<strong>${MODELS[modelId]?.name || modelId}:</strong><br>${content.replace(/\n/g, "<br>")}`;
+        } else if (role === "system") {
+            inner = escapeHtml(content).replace(/\n/g, "<br>");
+        } else if (role === "memory") {
+            const formatted = formatMarkdown(content);
+            inner = `<strong>🧠 ${currentLang === "zh" ? "记忆加载：" : "Memory:"}</strong><br>${formatted}`;
+        } else if (role === "attachment") {
+            inner = `<strong>📎 ${currentLang === "zh" ? "附件材料：" : "Attachment:"}</strong><br>${escapeHtml(content).replace(/\n/g, "<br>")}`;
+        } else {
+            inner = escapeHtml(content).replace(/\n/g, "<br>");
+        }
+        const delSpan = `<span class="delete-msg" data-id="${msgId}">🗑️</span>`;
+        msgDiv.innerHTML = inner + delSpan;
+        chatDiv.appendChild(msgDiv);
+        const clearDiv = document.createElement("div"); clearDiv.className = "clear";
+        chatDiv.appendChild(clearDiv);
+        // 移动端长按删除（保留原逻辑，但已使用事件委托，不需要重复绑定）
+        let pressTimer;
+        msgDiv.addEventListener('touchstart', (e) => {
+            pressTimer = setTimeout(() => {
+                msgDiv.classList.add('long-press-active');
+                if (navigator.vibrate && document.getElementById("vibrateFeedback")?.checked) navigator.vibrate(50);
+                if (confirm(currentLang === "zh" ? "确定要删除这条消息吗？" : "Delete this message?")) {
+                    msgDiv.remove();
+                    let idx = globalHistory.findIndex(h => h.id === msgId);
+                    if (idx !== -1) globalHistory.splice(idx, 1);
+                }
+                msgDiv.classList.remove('long-press-active');
+            }, 500);
+        });
+        msgDiv.addEventListener('touchend', () => { clearTimeout(pressTimer); });
+        msgDiv.addEventListener('touchmove', () => { clearTimeout(pressTimer); });
+        if (!userScrolledUp) scrollToBottom();
+        if (role !== "system" && role !== "memory" && role !== "attachment") {
+            globalHistory.push({ id: msgId, role: role === "user" ? "user" : "assistant", content, model: modelId });
+            if (role === "ai") lastAIMessage = { modelId, content };
+        }
+        // 限制 globalHistory 长度
+        if (globalHistory.length > 200) {
+            const toDel = globalHistory.slice(0, 20);
+            toDel.forEach(item => {
+                const el = document.getElementById(item.id);
+                if (el) el.remove();
+            });
+            globalHistory = globalHistory.slice(20);
+        }
+        return msgId;
+    }
+
+    function addSystemMessage(content) {
+        addMessage("system", content);
+    }
+
+    // 改进：真正解析上传的文件
+    document.getElementById("uploadBtn").onclick = () => document.getElementById("fileInput").click();
+    document.getElementById("fileInput").onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const fileType = file.name.split('.').pop().toLowerCase();
+        let fileContent = "";
+        try {
+            if (fileType === 'txt' || fileType === 'md' || fileType === 'csv' || fileType === 'json') {
+                fileContent = await file.text();
+            } else if (fileType === 'docx') {
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer });
+                fileContent = result.value;
+            } else if (fileType === 'xlsx' || fileType === 'xls') {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data);
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                fileContent = XLSX.utils.sheet_to_html(sheet);
+            } else {
+                addSystemMessage(currentLang === "zh" ? "不支持的文件类型" : "Unsupported file type");
+                return;
+            }
+            addMessage("attachment", `【文件：${file.name}】\n${fileContent.substring(0, 3000)}${fileContent.length > 3000 ? "\n...(内容已截断)" : ""}`);
+        } catch (err) {
+            addSystemMessage(currentLang === "zh" ? `文件解析失败: ${err.message}` : `File parse error: ${err.message}`);
+        }
+        e.target.value = ''; // 清空，允许重复上传同一文件
+    };
+
+    function getPeersList(currentId) {
+        const enabled = Object.values(MODELS).filter(m => m.enabled && m.apiKey && m.id !== currentId);
+        if (enabled.length === 0) return "";
+        const names = enabled.map(m => `${m.name}（${m.description}）`).join("、");
+        return currentLang === "zh" ? `当前与你一起回答问题的AI有：${names}。请提供独特视角，可以预判并回应其他AI可能提出的观点，形成互补或对话。` : `Other AIs answering with you: ${names}. Provide unique perspectives, anticipate and respond to their possible views.`;
+    }
+
+    // 核心调用函数（增加重试机制）
+    async function callModel(modelId, prompt, onChunk = null, rawMarkdown = false, historyWithSpeakers = false, cognitiveContext = null, retries = 1) {
+        const m = MODELS[modelId];
+        if (!m.enabled || !m.apiKey) throw new Error(`${m.name} ${currentLang === "zh" ? "未启用" : "not enabled"}`);
+        let messages = [{ role: "system", content: getSystemPrompt(document.getElementById("enableSelfCriticism").checked) }];
+        
+        if (cognitiveContext && document.getElementById("enableCognitiveContinuity").checked) {
+            const frameText = currentLang === "zh" ?
+                `\n\n【当前已建立的认知框架】（基于之前的总结）\n- 认知框架：${cognitiveContext.cognitiveFrame || "无"}\n- 深层洞察：${(cognitiveContext.deepInsights || []).join("；") || "无"}\n\n请在回答时，首先基于以上框架表达你的理解。你可以说：“基于我们之前形成的认知框架，我认为……”` :
+                `\n\n[Established Cognitive Framework]\n- Framework: ${cognitiveContext.cognitiveFrame || "None"}\n- Deep Insights: ${(cognitiveContext.deepInsights || []).join("; ") || "None"}\n\nPlease base your response on this framework first. You may say: "Based on our previously formed framework, I think..."`;
+            messages[0].content += frameText;
+        }
+        
+        let history = globalHistory.slice(-50);
+        if (historyWithSpeakers) {
+            for (let h of history) {
+                let speaker = "";
+                if (h.role === "user") speaker = currentLang === "zh" ? "用户" : "User";
+                else if (h.role === "assistant" && h.model) speaker = MODELS[h.model]?.name || h.model;
+                else speaker = "Unknown";
+                const contentWithSpeaker = `[${speaker}]：${h.content}`;
+                messages.push({ role: h.role === "user" ? "user" : "assistant", content: contentWithSpeaker });
+            }
+        } else {
+            for (let h of history) {
+                messages.push({ role: h.role === "user" ? "user" : "assistant", content: h.content });
+            }
+        }
+        messages.push({ role: "user", content: prompt });
+        
+        const controller = new AbortController();
+        activeControllers.push(controller);
+        const requestBody = {
+            modelId: modelId,
+            apiKey: m.apiKey,
+            messages: messages,
+            modelName: m.model,
+            stream: !!onChunk
+        };
+        
+        const attemptCall = async (attempt) => {
+            try {
+                const response = await fetch(PROXY_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(requestBody),
+                    signal: controller.signal
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (onChunk) {
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let fullContent = "";
+                    let msgId = null;
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split("\n").filter(l => l.trim());
+                        for (const line of lines) {
+                            if (line.startsWith("data: ")) {
+                                const data = line.slice(6);
+                                if (data === "[DONE]") continue;
+                                try {
+                                    const json = JSON.parse(data);
+                                    const delta = json.choices?.[0]?.delta?.content;
+                                    if (delta) {
+                                        fullContent += delta;
+                                        let formatted = rawMarkdown ? fullContent : formatMarkdown(fullContent);
+                                        if (!msgId) {
+                                            msgId = addMessage("ai", formatted, modelId);
+                                        } else {
+                                            const msgDiv = document.getElementById(msgId);
+                                            if (msgDiv) {
+                                                msgDiv.innerHTML = `<strong>${m.name}:</strong><br>${formatted.replace(/\n/g, "<br>")}<span class="delete-msg" style="opacity:0">🗑️</span>`;
+                                            }
+                                        }
+                                    }
+                                } catch (e) { console.warn("流式解析错误", e); }
+                            }
+                        }
+                    }
+                    const finalChunk = decoder.decode();
+                    if (finalChunk) {
+                        fullContent += finalChunk;
+                        let formatted = rawMarkdown ? fullContent : formatMarkdown(fullContent);
+                        const msgDiv = document.getElementById(msgId);
+                        if (msgDiv) {
+                            msgDiv.innerHTML = `<strong>${m.name}:</strong><br>${formatted.replace(/\n/g, "<br>")}<span class="delete-msg" style="opacity:0">🗑️</span>`;
+                        }
+                    }
+                    activeControllers = activeControllers.filter(c => c !== controller);
+                    return fullContent;
+                } else {
+                    const data = await response.json();
+                    if (data.error) throw new Error(data.error);
+                    let content = data.reply;
+                    if (!rawMarkdown) {
+                        content = formatMarkdown(content);
+                        addMessage("ai", content, modelId);
+                    }
+                    activeControllers = activeControllers.filter(c => c !== controller);
+                    return content;
+                }
+            } catch (e) {
+                if (attempt < retries && e.name !== "AbortError") {
+                    console.log(`Retry ${attempt+1} for ${modelId}`);
+                    await new Promise(r => setTimeout(r, 1000));
+                    return attemptCall(attempt + 1);
+                }
+                throw e;
+            }
+        };
+        
+        try {
+            return await attemptCall(0);
+        } catch (e) {
+            activeControllers = activeControllers.filter(c => c !== controller);
+            if (e.name !== "AbortError") {
+                addSystemMessage(`❌ ${m.name} ${currentLang === "zh" ? "调用失败" : "failed"}: ${e.message}`);
+            }
+            throw e;
+        }
+    }
+    // ==================== 手动发送 ====================
+    async function sendManual() {
+        const text = document.getElementById("userInput").value.trim();
+        if (!text) return;
+        addMessage("user", text);
+        document.getElementById("userInput").value = "";
+        const enabledModels = Object.values(MODELS).filter(m => m.enabled && m.apiKey);
+        if (enabledModels.length === 0) {
+            addSystemMessage(currentLang === "zh" ? "没有启用的模型" : "No enabled models");
+            return;
+        }
+        const teamPerception = document.getElementById("teamPerceptionCheckbox").checked;
+        const serialMode = document.getElementById("serialModeCheckbox").checked;
+        const cognitiveContinuity = document.getElementById("enableCognitiveContinuity").checked;
+        let relevantMemory = null;
+        if (cognitiveContinuity) {
+            const memories = retrieveRelevantMemories(text, 1);
+            if (memories.length) relevantMemory = memories[0];
+        }
+        document.getElementById("stopSendBtn").style.display = "inline-block";
+        if (serialMode) {
+            let fullHistory = [];
+            for (const m of enabledModels) {
+                let prompt = text;
+                if (teamPerception) {
+                    const peers = getPeersList(m.id);
+                    prompt = peers ? `${peers}\n\n用户问题：${text}` : text;
+                }
+                if (fullHistory.length > 0) {
+                    const previous = fullHistory.map(h => `${h.name}：${h.content}`).join("\n\n");
+                    prompt = `${prompt}\n\n前面其他AI的回答：\n${previous}\n\n请批判性分析以上回答，指出正确之处或质疑可能错误之处，然后给出你的观点。`;
+                }
+                try {
+                    const reply = await callModel(m.id, prompt, null, false, false, relevantMemory, 1);
+                    fullHistory.push({ name: m.name, content: reply });
+                } catch (e) {}
+            }
+        } else {
+            const promises = enabledModels.map(m => {
+                let prompt = text;
+                if (teamPerception) {
+                    const peers = getPeersList(m.id);
+                    prompt = peers ? `${peers}\n\n用户问题：${text}` : text;
+                }
+                return callModel(m.id, prompt, null, false, false, relevantMemory, 1).catch(e => null);
+            });
+            await Promise.all(promises);
+        }
+        document.getElementById("stopSendBtn").style.display = "none";
+    }
+
+    function stopManualSend() {
+        activeControllers.forEach(c => c.abort());
+        activeControllers = [];
+        addSystemMessage(currentLang === "zh" ? "已停止生成" : "Stopped");
+        document.getElementById("stopSendBtn").style.display = "none";
+    }
+
+    // ==================== 自动讨论（集成共识裁判、失败重试、合并阈值） ====================
+    async function startAutoDiscussion() {
+        if (autoActive) { addSystemMessage(currentLang === "zh" ? "已有讨论进行中" : "Discussion in progress"); return; }
+        const mode = document.querySelector('input[name="discussCount"]:checked').value;
+        const ai1 = document.getElementById("ai1Select").value;
+        const ai2 = document.getElementById("ai2Select").value;
+        let modelIds = [ai1, ai2];
+        if (mode === "3") {
+            const ai3 = document.getElementById("ai3Select").value;
+            if (ai3) modelIds.push(ai3);
+        }
+        const topic = document.getElementById("topicInput").value.trim();
+        if (!topic) { addSystemMessage(currentLang === "zh" ? "请输入讨论主题" : "Please enter a topic"); return; }
+        let rounds = parseInt(document.getElementById("roundsInput").value) || 3;
+        const untilConsensus = document.getElementById("untilConsensusCheckbox").checked;
+        const purpose = document.getElementById("purposeMode").value;
+        let custom = "", roleA = "", roleB = "";
+        if (purpose === "custom") custom = document.getElementById("customModeInput").value.trim();
+        else if (purpose === "roleplay") {
+            roleA = document.getElementById("roleA").value.trim();
+            roleB = document.getElementById("roleB").value.trim();
+            if (!roleA || !roleB) { addSystemMessage(currentLang === "zh" ? "请填写角色A和角色B" : "Please fill roles"); return; }
+        }
+        autoActive = true;
+        autoAbort = false;
+        document.getElementById("startAutoBtn").disabled = true;
+        document.getElementById("stopAutoBtn").disabled = false;
+        let round = 1, index = 0;
+        let history = [];
+        addSystemMessage(`${currentLang === "zh" ? "🤖 自动讨论开始，主题：" : "🤖 Auto discussion started, topic:"} ${topic}`);
+        const teamPerception = document.getElementById("teamPerceptionCheckbox").checked;
+        const cognitiveContinuity = document.getElementById("enableCognitiveContinuity").checked;
+        const conflictHandling = document.getElementById("enableConflictHandling").checked;
+        // 使用统一的共识严格程度（合并后的控件）
+        const consensusStrictness = document.getElementById("consensusThreshold").value;
+        
+        let relevantMemory = null;
+        if (cognitiveContinuity) {
+            const mems = retrieveRelevantMemories(topic, 1);
+            if (mems.length) relevantMemory = mems[0];
+        }
+        
+        // 共识裁判函数（带重试，最多2次）
+        async function judgeConsensus(roundNum, currentHistory, firstModelId) {
+            const judgePrompt = currentLang === "zh" ?
+                `你作为裁判，请判断到目前为止的讨论是否已经达成了共识。共识判断标准：${consensusStrictness === 'strict' ? '所有关键观点必须完全一致且无补充意见' : (consensusStrictness === 'medium' ? '核心结论一致，细节可略有差异' : '主要方向一致即可')}。\n\n讨论主题：${topic}\n\n讨论记录：\n${currentHistory.map(h => `[${h.name}]：${h.content}`).join('\n\n')}\n\n请输出格式：【共识判断】已达成共识 / 未达成共识。理由：……` :
+                `As judge, determine whether consensus has been reached. Criteria: ${consensusStrictness === 'strict' ? 'all key points must be fully consistent' : (consensusStrictness === 'medium' ? 'core conclusions consistent, minor differences allowed' : 'main direction consistent')}.\n\nTopic: ${topic}\n\nDiscussion:\n${currentHistory.map(h => `[${h.name}]：${h.content}`).join('\n\n')}\n\nOutput format: [Consensus] Reached / Not reached. Reason: ...`;
+            for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                    const reply = await callModel(firstModelId, judgePrompt, null, true, false, null, 0); // 裁判不重试，外层控制
+                    const reached = reply.includes("已达成共识") || reply.includes("Reached");
+                    addSystemMessage(`⚖️ 裁判（${MODELS[firstModelId].name}）判断：${reached ? (currentLang === "zh" ? "已达成共识" : "Consensus reached") : (currentLang === "zh" ? "未达成共识" : "Consensus not reached")}\n理由：${reply.substring(0, 200)}`);
+                    return reached;
+                } catch(e) {
+                    addSystemMessage(`⚠️ 裁判判断失败 (尝试 ${attempt+1}/2): ${e.message}`);
+                    if (attempt === 0) await new Promise(r => setTimeout(r, 1000));
+                }
+            }
+            addSystemMessage(`⚠️ 裁判判断失败，继续讨论。`);
+            return false;
+        }
+        
+        while ((round <= rounds || (untilConsensus && !autoAbort)) && !autoAbort) {
+            const currentId = modelIds[index];
+            const currentModel = MODELS[currentId];
+            let prompt = "";
+            const isFirstRoundFirstSpeaker = (round === 1 && index === 0);
+            let historyText = history.map(h => `[${h.name}]：${h.content}`).join("\n\n");
+            
+            if (isFirstRoundFirstSpeaker) {
+                let framePrefix = "";
+                if (cognitiveContinuity && relevantMemory && relevantMemory.cognitiveFrame) {
+                    framePrefix = currentLang === "zh" ?
+                        `基于我们之前形成的认知框架（${relevantMemory.cognitiveFrame.substring(0, 200)}...），请先以此为基础表达你的观点。` :
+                        `Based on our previously formed cognitive framework (${relevantMemory.cognitiveFrame.substring(0, 200)}...), please express your views based on it first.`;
+                }
+                if (purpose === "roleplay") {
+                    prompt = `${framePrefix}\n你是第一位发言者。请开始角色扮演对话。主题：${topic}\n角色A（${roleA}）首先发言。请扮演${roleA}，以该角色的身份、语言风格和知识背景发表观点。请尽量完整、有深度地阐述你的看法，并留下可供后续讨论的空间。`;
+                } else if (purpose === "custom") {
+                    prompt = `${framePrefix}\n你是第一位发言者。请对主题“${topic}”进行初步分析。${custom ? `额外要求：${custom}` : ''}请尽量全面、深入地表达你的观点，独立完成你的发言。结尾可以提出一两个开放性问题。`;
+                } else if (purpose === "factFinding") {
+                    prompt = `${framePrefix}\n你是第一位发言者。请针对问题“${topic}”给出最直接、准确的答案，并附上关键依据。`;
+                } else if (purpose === "personalGrowth") {
+                    prompt = `${framePrefix}\n你是第一位发言者。请以个人成长顾问的身份，针对用户的问题“${topic}”，从多个维度提出具体、可操作的建议。`;
+                } else {
+                    const modeMap = { free:"自由讨论", critical:"批判性分析", constructive:"建设性建议", debate:"辩论", summary:"总结提炼", academic:"学术深度", simple:"通俗易懂", cross:"跨文化比较", creative:"创意发散" };
+                    let modeText = modeMap[purpose] || "初步分析";
+                    prompt = `${framePrefix}\n你是第一位发言者。请对主题“${topic}”进行${modeText}。请独立、完整地表达你的观点，不要预判其他AI的回答。结尾可以提出值得探讨的方向。`;
+                }
+            } else {
+                let baseInstruction = "";
+                if (purpose === "roleplay") {
+                    const isRoleA = (round % 2 === 1 && index === 0) || (round % 2 === 0 && index === 1);
+                    const currentRole = isRoleA ? roleA : roleB;
+                    baseInstruction = `请基于以上所有讨论，继续角色扮演对话。请扮演${currentRole}，回应上一位发言者。${custom ? ` 额外要求：${custom}` : ''}`;
+                } else if (purpose === "custom") {
+                    baseInstruction = `请基于以上所有讨论，发表你的看法。${custom ? ` 额外要求：${custom}` : ''}`;
+                } else if (purpose === "factFinding") {
+                    baseInstruction = `请基于以上所有讨论，若答案已明确则不再补充；若有新事实请简要说明，否则结束。`;
+                } else if (purpose === "personalGrowth") {
+                    baseInstruction = `请基于以上所有讨论，继续从个人成长角度补充建议，或对已有建议进行细化。`;
+                } else {
+                    const modeMap = { free:"自由发表看法", critical:"批判性分析回应", constructive:"建设性建议回应", debate:"继续辩论", summary:"总结整合", academic:"学术深度回应", simple:"通俗易懂回应", cross:"跨文化比较回应", creative:"创意发散回应" };
+                    baseInstruction = (modeMap[purpose] || "发表你的看法") + "。";
+                }
+                if (conflictHandling && relevantMemory && relevantMemory.cognitiveFrame) {
+                    baseInstruction += currentLang === "zh" ?
+                        `\n\n如果新信息与既有认知框架（${relevantMemory.cognitiveFrame.substring(0, 100)}...）冲突，请明确指出冲突点，并尝试修正框架或记录张力。` :
+                        `\n\nIf new information conflicts with the existing cognitive framework, explicitly state the conflict and attempt to revise the framework or record the tension.`;
+                }
+                if (document.getElementById("enableSelfCriticism").checked) {
+                    baseInstruction += currentLang === "zh" ?
+                        `\n\n请反思：你的观点是否可能遗漏了其他重要角度？如果发现自己之前的观点有片面性，请主动修正。` :
+                        `\n\nReflect: Could your view be missing other important angles? If you find your previous views one-sided, actively correct them.`;
+                }
+                baseInstruction += `\n\n前面讨论：\n${historyText}`;
+                prompt = baseInstruction;
+            }
+            
+            addSystemMessage(`📢 ${currentLang === "zh" ? "第" : "Round "}${round}${currentLang === "zh" ? "轮，" : ", "}${currentModel.name} ${currentLang === "zh" ? "发言" : "speaks"}`);
+            try {
+                // 重试1次
+                const reply = await callModel(currentId, prompt, null, false, true, relevantMemory, 1);
+                if (reply) history.push({ name: currentModel.name, content: reply });
+            } catch(e) { 
+                addSystemMessage(`${currentModel.name} ${currentLang === "zh" ? "发言失败（已重试）" : "failed after retry"}`);
+                // 发言失败后不推进索引，允许下次重试？但为了不卡死，仍推进，但少一个观点
+            }
+            index = (index + 1) % modelIds.length;
+            if (index === 0) {
+                round++;
+                // 从第三轮结束开始（round>3），且直到共识开启时
+                if (untilConsensus && round > 3 && history.length >= 3) {
+                    const firstModelId = modelIds[0];
+                    const consensusReached = await judgeConsensus(round-1, history, firstModelId);
+                    if (consensusReached) {
+                        addSystemMessage(currentLang === "zh" ? "✅ 讨论已达成共识，提前结束。" : "✅ Consensus reached, ending discussion.");
+                        break;
+                    }
+                }
+            }
+            await new Promise(r => setTimeout(r, 1000));
+        }
+        autoActive = false;
+        document.getElementById("startAutoBtn").disabled = false;
+        document.getElementById("stopAutoBtn").disabled = true;
+        addSystemMessage(currentLang === "zh" ? "✅ 自动讨论结束" : "✅ Auto discussion ended");
+    }
+
+    function stopAutoDiscussion() {
+        autoAbort = true;
+        activeControllers.forEach(c => c.abort());
+        activeControllers = [];
+        addSystemMessage(currentLang === "zh" ? "⏹️ 讨论已停止" : "⏹️ Stopped");
+    }
+    // ==================== 总结并记忆（防止重复生成） ====================
+    async function summarizeAndRemember() {
+        if (isSummarizing) {
+            addSystemMessage(currentLang === "zh" ? "正在生成总结，请稍后再试。" : "Summary already in progress, please wait.");
+            return;
+        }
+        isSummarizing = true;
+        const btn = document.getElementById("summarizeBtn");
+        const originalText = btn.innerText;
+        btn.innerText = currentLang === "zh" ? "⏳ 生成中..." : "Generating...";
+        btn.disabled = true;
+        
+        const enabled = Object.values(MODELS).filter(m => m.enabled && m.apiKey);
+        if (enabled.length === 0) { 
+            addSystemMessage(currentLang === "zh" ? "没有启用的模型" : "No enabled models");
+            isSummarizing = false;
+            btn.innerText = originalText;
+            btn.disabled = false;
+            return; 
+        }
+        addSystemMessage(currentLang === "zh" ? "📝 正在生成深度总结（含框架演进）..." : "📝 Generating deep summary with frame evolution...");
+        const summaryPrompt = `请对我们刚才的整个对话进行系统性总结。严格按照以下十三个部分的顺序输出，每个部分必须包含对应标题，不得合并、跳过或更改顺序。若某部分无明显内容，请输出“(无)”。请使用Markdown格式，对重要观点、关键结论等用**粗体**标记。
+
+1. 核心摘要（1-2句话，50字以内）
+2. 核心观点（3-5条，每条1-2句话）
+3. 认知框架（本次讨论形成的核心框架）
+4. 深层洞察（2-3条）
+5. 认知世界的帮助
+6. 行动建议（2-3条具体、可执行的步骤）
+7. 未竟之处与后续方向（1-3个方向）
+8. 关键引用/金句（可选，1-2句）
+9. 文笔与语言风格
+10. 知识局限与认知缺口
+11. 情感基调与氛围
+12. 可视化元素建议
+13. 框架演进说明（本次讨论对既有认知框架的修正、补充或未解决的张力）`;
+
+        let combined = "";
+        for (const model of enabled) {
+            try {
+                const reply = await callModel(model.id, summaryPrompt, null, true, false, null, 1);
+                combined += `\n\n--- ${model.color} ${model.name} ${currentLang === "zh" ? "的总结" : "summary"} ---\n${reply}`;
+            } catch(e) {
+                combined += `\n\n--- ${model.color} ${model.name} ${currentLang === "zh" ? "总结失败" : "failed"} ---`;
+            }
+        }
+        if (combined.trim()) {
+            let memories = JSON.parse(localStorage.getItem(MEMORY_LIST_KEY) || "[]");
+            let cognitiveFrame = "", deepInsights = [], frameEvolution = "";
+            const frameMatch = combined.match(/3\.\s*认知框架[：:]\s*([\s\S]*?)(?=\n\d+\.|$)/i);
+            if (frameMatch) cognitiveFrame = frameMatch[1].trim();
+            const insightsMatch = combined.match(/4\.\s*深层洞察[：:]\s*([\s\S]*?)(?=\n\d+\.|$)/i);
+            if (insightsMatch) {
+                const lines = insightsMatch[1].split(/\n/);
+                deepInsights = lines.filter(l => l.trim().length > 0);
+            }
+            const evolutionMatch = combined.match(/13\.\s*框架演进说明[：:]\s*([\s\S]*?)$/i);
+            if (evolutionMatch) frameEvolution = evolutionMatch[1].trim();
+            
+            const newMemory = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleString(),
+                content: combined,
+                summary: combined.substring(0, 200) + "...",
+                cognitiveFrame: cognitiveFrame,
+                deepInsights: deepInsights,
+                frameEvolution: frameEvolution,
+                unresolvedTensions: [],
+                relatedTo: []
+            };
+            memories.push(newMemory);
+            localStorage.setItem(MEMORY_LIST_KEY, JSON.stringify(memories));
+            addSystemMessage(`${currentLang === "zh" ? "✅ 总结已保存至记忆库 (第" : "✅ Summary saved (No."}${memories.length})`);
+            addMessage("memory", combined);
+        } else {
+            addSystemMessage(currentLang === "zh" ? "❌ 总结失败" : "❌ Summary failed");
+        }
+        isSummarizing = false;
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+
+    function loadAllMemories() {
+        const memories = JSON.parse(localStorage.getItem(MEMORY_LIST_KEY) || "[]");
+        const recent = memories.slice(-10);
+        recent.forEach((mem, idx) => {
+            addMessage("memory", mem.content);
+        });
+    }
+
+    // ==================== 记忆库模态框（关闭按钮始终浮动在右上角） ====================
+    function openMemoryModal() {
+        const modal = document.getElementById("memoryModal");
+        const memories = JSON.parse(localStorage.getItem(MEMORY_LIST_KEY) || "[]");
+        const listDiv = document.getElementById("memoryList");
+        const searchInput = document.getElementById("memorySearch");
+        function render(filter = "") {
+            const filtered = filter ? memories.filter(m => m.content.includes(filter) || m.summary.includes(filter)) : memories;
+            if (filtered.length === 0) {
+                listDiv.innerHTML = "<div>暂无记忆</div>";
+                return;
+            }
+            listDiv.innerHTML = filtered.map((mem, idx) => `
+                <div class="memory-item">
+                    <h4>${currentLang === "zh" ? "记忆" : "Memory"} #${idx+1} (${mem.timestamp})</h4>
+                    <div><strong>🧠 认知框架：</strong> ${escapeHtml((mem.cognitiveFrame || "").substring(0, 150))}${mem.cognitiveFrame && mem.cognitiveFrame.length > 150 ? "..." : ""}</div>
+                    <div><strong>🔍 框架演进：</strong> ${escapeHtml((mem.frameEvolution || "").substring(0, 100))}${mem.frameEvolution && mem.frameEvolution.length > 100 ? "..." : ""}</div>
+                    <div style="white-space: pre-wrap;">${formatMarkdown(mem.content.substring(0, 200))}${mem.content.length>200?"...":""}</div>
+                    <div class="memory-actions">
+                        <button data-id="${mem.id}" class="view-full-btn">${currentLang === "zh" ? "查看完整" : "View Full"}</button>
+                        <button data-id="${mem.id}" class="delete-memory">${currentLang === "zh" ? "删除" : "Delete"}</button>
+                    </div>
+                </div>
+            `).join("");
+            document.querySelectorAll(".view-full-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const id = parseInt(btn.dataset.id);
+                    const mem = memories.find(m => m.id === id);
+                    if (mem) showFullContent(mem.content);
+                });
+            });
+            document.querySelectorAll(".delete-memory").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const id = parseInt(btn.dataset.id);
+                    if (confirm(currentLang === "zh" ? "删除此记忆？" : "Delete this memory?")) {
+                        const newMemories = memories.filter(m => m.id !== id);
+                        localStorage.setItem(MEMORY_LIST_KEY, JSON.stringify(newMemories));
+                        render(searchInput.value);
+                    }
+                });
+            });
+        }
+        render("");
+        searchInput.oninput = () => render(searchInput.value);
+        modal.style.display = "flex";
+    }
+
+    function showFullContent(content) {
+        const modal = document.getElementById("fullContentModal");
+        document.getElementById("fullContentText").innerHTML = formatMarkdown(content);
+        modal.style.display = "flex";
+    }
+
+    function resetCognitiveFrame() {
+        if (confirm(currentLang === "zh" ? "重置所有认知框架？这将清除记忆库中的框架字段，但保留原始内容。是否继续？" : "Reset all cognitive frames? This will clear frame fields in memory but keep raw content. Continue?")) {
+            let memories = JSON.parse(localStorage.getItem(MEMORY_LIST_KEY) || "[]");
+            for (let mem of memories) {
+                mem.cognitiveFrame = "";
+                mem.deepInsights = [];
+                mem.frameEvolution = "";
+                mem.unresolvedTensions = [];
+            }
+            localStorage.setItem(MEMORY_LIST_KEY, JSON.stringify(memories));
+            addSystemMessage(currentLang === "zh" ? "✅ 认知框架已重置" : "✅ Cognitive frames reset");
+        }
+    }
+
+    // ==================== 导出功能（使用window.print代替html2pdf） ====================
+    function exportMarkdown() {
+        const memories = JSON.parse(localStorage.getItem(MEMORY_LIST_KEY) || "[]");
+        let content = "# Cognitive Studio Discussion Record\n\n";
+        const msgs = document.querySelectorAll("#chat .message:not(.memory)");
+        msgs.forEach(m => {
+            const role = m.classList.contains("user") ? "User" : (m.classList.contains("ai") ? m.querySelector("strong")?.innerText || "AI" : "System");
+            let text = m.innerText.replace(/🗑️/g, "").trim();
+            content += `### ${role}\n${text}\n\n`;
+        });
+        if (memories.length) {
+            content += "## Long-term Memory & Cognitive Evolution\n";
+            memories.forEach((mem, idx) => {
+                content += `### Memory ${idx+1} (${mem.timestamp})\n`;
+                if (mem.cognitiveFrame) content += `**Cognitive Frame:** ${mem.cognitiveFrame}\n\n`;
+                if (mem.frameEvolution) content += `**Frame Evolution:** ${mem.frameEvolution}\n\n`;
+                content += `${mem.content}\n\n`;
+            });
+        }
+        const blob = new Blob([content], { type: "text/markdown" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `discussion_${new Date().toISOString()}.md`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    function exportPdf() {
+        // 改进：使用window.print + 媒体打印样式
+        window.print();
+    }
+
+    async function smartTeam() {
+        const topic = document.getElementById("topicInput").value.trim();
+        if (!topic) { addSystemMessage(currentLang === "zh" ? "请先输入主题" : "Please enter a topic"); return; }
+        const enabled = Object.values(MODELS).filter(m => m.enabled && m.apiKey);
+        if (enabled.length < 3) { addSystemMessage(currentLang === "zh" ? "可用模型不足3个" : "Less than 3 models available"); return; }
+        let judge = MODELS.deepseek;
+        if (!judge.enabled || !judge.apiKey) judge = enabled[0];
+        const prompt = `请根据话题“${topic}”，从以下模型中选择3个最适合讨论的，返回JSON数组（只返回数组）：${enabled.map(m => m.id).join(", ")}`;
+        try {
+            const reply = await callModel(judge.id, prompt, null, true, false, null, 1);
+            const match = reply.match(/\[.*?\]/);
+            let ids = match ? JSON.parse(match[0]) : enabled.slice(0,3).map(m => m.id);
+            ids = ids.filter(id => enabled.some(m => m.id === id));
+            if (ids.length < 3) ids = enabled.slice(0,3).map(m => m.id);
+            document.getElementById("ai1Select").value = ids[0];
+            document.getElementById("ai2Select").value = ids[1];
+            document.getElementById("ai3Select").value = ids[2];
+            document.querySelector('input[value="3"]').checked = true;
+            document.getElementById("ai3Select").style.display = "inline-block";
+            addSystemMessage(`${currentLang === "zh" ? "✅ 智能组队：" : "✅ Smart team: "}${ids.map(id => MODELS[id].name).join("、")}`);
+        } catch(e) { addSystemMessage(currentLang === "zh" ? "智能组队失败" : "Smart team failed"); }
+    }
+
+    // ==================== 模型卡片渲染、配置加载等 ====================
+    function renderModelCards() {
+        const container = document.getElementById("modelCards");
+        container.innerHTML = "";
+        let list = Object.values(MODELS);
+        if (modelOrder.length === list.length) {
+            list = modelOrder.map(id => MODELS[id]).filter(Boolean);
+        } else {
+            modelOrder = list.map(m => m.id);
+        }
+        list.forEach(m => {
+            const card = document.createElement("div");
+            card.className = "model-card" + (sortMode ? " sort-mode-active" : "");
+            card.dataset.id = m.id;
+            card.innerHTML = `
+                <h3>${m.color} ${m.name}</h3>
+                <input type="text" id="${m.id}Key" placeholder="API Key" value="${escapeHtml(m.apiKey || '')}">
+                <label><input type="checkbox" id="${m.id}Enable" ${m.enabled ? 'checked' : ''}> ${currentLang === "zh" ? "启用" : "Enable"}</label>
+                <div class="model-desc">${m.description}</div>
+                <div class="model-status" id="${m.id}Status">⚪ ${currentLang === "zh" ? "未检测" : "Not checked"}</div>
+            `;
+            container.appendChild(card);
+        });
+        if (sortMode) {
+            if (!container.sortable) {
+                container.sortable = new Sortable(container, {
+                    animation: 150,
+                    onEnd: () => {
+                        modelOrder = Array.from(container.children).map(card => card.dataset.id);
+                        localStorage.setItem("model_order", JSON.stringify(modelOrder));
+                        updateModelSelects();
+                    }
+                });
+            }
+        } else {
+            if (container.sortable) {
+                container.sortable.destroy();
+                delete container.sortable;
+            }
+        }
+    }
+
+    function updateModelSelects() {
+        const enabledModels = Object.values(MODELS).filter(m => m.enabled && m.apiKey);
+        const options = enabledModels.map(m => `<option value="${m.id}">${m.color} ${m.name}</option>`);
+        const ai1 = document.getElementById("ai1Select");
+        const ai2 = document.getElementById("ai2Select");
+        const ai3 = document.getElementById("ai3Select");
+        ai1.innerHTML = options.length ? options.join('') : '<option disabled>无可用模型</option>';
+        ai2.innerHTML = options.length ? options.join('') : '<option disabled>无可用模型</option>';
+        ai3.innerHTML = options.length ? options.join('') : '<option disabled>无可用模型</option>';
+        if (enabledModels.length >= 2 && ai1.value === ai2.value) {
+            ai2.selectedIndex = (ai2.selectedIndex + 1) % enabledModels.length;
+        }
+        if (enabledModels.length >= 3 && ai1.value === ai3.value) {
+            ai3.selectedIndex = (ai3.selectedIndex + 1) % enabledModels.length;
+        }
+    }
+
+    function loadSettings() {
+        migrateMemoryStructure();
+        const savedOrder = localStorage.getItem("model_order");
+        if (savedOrder) modelOrder = JSON.parse(savedOrder);
+        const savedSortMode = localStorage.getItem("sort_mode");
+        if (savedSortMode) sortMode = savedSortMode === "true";
+        document.getElementById("toggleSortModeBtn").innerHTML = sortMode ? "🔀 " + t("sortModeActive") : "🔀 " + t("sortModeText");
+        for (let id in MODELS) {
+            const key = localStorage.getItem(`${id}_key`);
+            const en = localStorage.getItem(`${id}_enable`);
+            if (key) MODELS[id].apiKey = key;
+            if (en !== null) MODELS[id].enabled = en === 'true';
+            const input = document.getElementById(`${id}Key`);
+            const chk = document.getElementById(`${id}Enable`);
+            if (input) input.value = MODELS[id].apiKey || '';
+            if (chk) chk.checked = MODELS[id].enabled;
+        }
+        const topic = localStorage.getItem("last_topic");
+        if (topic) document.getElementById("topicInput").value = topic;
+        const purpose = localStorage.getItem("last_purpose");
+        if (purpose) document.getElementById("purposeMode").value = purpose;
+        const custom = localStorage.getItem(CUSTOM_MODE_KEY);
+        if (custom) document.getElementById("customModeInput").value = custom;
+        const rounds = localStorage.getItem("last_rounds");
+        if (rounds) document.getElementById("roundsInput").value = rounds;
+        const consensus = localStorage.getItem("last_consensus");
+        if (consensus) document.getElementById("untilConsensusCheckbox").checked = consensus === 'true';
+        const teamPerception = localStorage.getItem("team_perception");
+        if (teamPerception !== null) document.getElementById("teamPerceptionCheckbox").checked = teamPerception === "true";
+        const serialMode = localStorage.getItem("serial_mode");
+        if (serialMode !== null) document.getElementById("serialModeCheckbox").checked = serialMode === "true";
+        const cognitive = localStorage.getItem("cognitive_continuity");
+        if (cognitive !== null) document.getElementById("enableCognitiveContinuity").checked = cognitive === "true";
+        const conflict = localStorage.getItem("conflict_handling");
+        if (conflict !== null) document.getElementById("enableConflictHandling").checked = conflict === "true";
+        const selfCrit = localStorage.getItem("self_criticism");
+        if (selfCrit !== null) document.getElementById("enableSelfCriticism").checked = selfCrit === "true";
+        const sensitivity = localStorage.getItem("frame_sensitivity");
+        if (sensitivity) document.getElementById("frameSensitivity").value = sensitivity;
+        const threshold = localStorage.getItem("consensus_threshold");
+        if (threshold) document.getElementById("consensusThreshold").value = threshold;
+        updateTopicBar();
+        updateModelSelects();
+        loadAllMemories();
+    }
+
+    function saveAllKeys() {
+        for (let id in MODELS) {
+            const input = document.getElementById(`${id}Key`);
+            const chk = document.getElementById(`${id}Enable`);
+            if (input) {
+                MODELS[id].apiKey = input.value.trim();
+                localStorage.setItem(`${id}_key`, MODELS[id].apiKey);
+            }
+            if (chk) {
+                MODELS[id].enabled = chk.checked;
+                localStorage.setItem(`${id}_enable`, MODELS[id].enabled);
+            }
+        }
+        const st = document.getElementById("saveStatus");
+        st.innerText = "✅ " + (currentLang === "zh" ? "已保存" : "Saved");
+        setTimeout(() => st.innerText = "", 2000);
+        updateModelSelects();
+    }
+
+    function clearAllKeys() {
+        if (!confirm(currentLang === "zh" ? "清除所有API Key？" : "Clear all API keys?")) return;
+        for (let id in MODELS) {
+            MODELS[id].apiKey = "";
+            localStorage.removeItem(`${id}_key`);
+            const input = document.getElementById(`${id}Key`);
+            if (input) input.value = "";
+            MODELS[id].enabled = false;
+            localStorage.setItem(`${id}_enable`, false);
+            const chk = document.getElementById(`${id}Enable`);
+            if (chk) chk.checked = false;
+        }
+        addSystemMessage(currentLang === "zh" ? "✅ 已清除所有API Key" : "✅ Cleared all keys");
+        updateModelSelects();
+    }
+
+    function exportConfig() {
+        const cfg = { modelOrder, sortMode, models: {}, settings: {
+            topic: document.getElementById("topicInput").value,
+            purpose: document.getElementById("purposeMode").value,
+            customMode: document.getElementById("customModeInput").value,
+            rounds: document.getElementById("roundsInput").value,
+            untilConsensus: document.getElementById("untilConsensusCheckbox").checked,
+            teamPerception: document.getElementById("teamPerceptionCheckbox").checked,
+            serialMode: document.getElementById("serialModeCheckbox").checked,
+            cognitiveContinuity: document.getElementById("enableCognitiveContinuity").checked,
+            conflictHandling: document.getElementById("enableConflictHandling").checked,
+            selfCriticism: document.getElementById("enableSelfCriticism").checked,
+            frameSensitivity: document.getElementById("frameSensitivity").value,
+            consensusThreshold: document.getElementById("consensusThreshold").value
+        }};
+        for (let id in MODELS) cfg.models[id] = { enabled: MODELS[id].enabled };
+        const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `cognitive_config_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    function importConfig() {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".json";
+        input.onchange = e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                try {
+                    const cfg = JSON.parse(ev.target.result);
+                    if (cfg.modelOrder) modelOrder = cfg.modelOrder;
+                    if (cfg.sortMode !== undefined) sortMode = cfg.sortMode;
+                    if (cfg.models) {
+                        for (let id in cfg.models) {
+                            if (MODELS[id]) MODELS[id].enabled = cfg.models[id].enabled;
+                        }
+                    }
+                    if (cfg.settings) {
+                        document.getElementById("topicInput").value = cfg.settings.topic || "";
+                        document.getElementById("purposeMode").value = cfg.settings.purpose || "free";
+                        document.getElementById("customModeInput").value = cfg.settings.customMode || "";
+                        document.getElementById("roundsInput").value = cfg.settings.rounds || 3;
+                        document.getElementById("untilConsensusCheckbox").checked = !!cfg.settings.untilConsensus;
+                        if (cfg.settings.teamPerception !== undefined) document.getElementById("teamPerceptionCheckbox").checked = cfg.settings.teamPerception;
+                        if (cfg.settings.serialMode !== undefined) document.getElementById("serialModeCheckbox").checked = cfg.settings.serialMode;
+                        if (cfg.settings.cognitiveContinuity !== undefined) document.getElementById("enableCognitiveContinuity").checked = cfg.settings.cognitiveContinuity;
+                        if (cfg.settings.conflictHandling !== undefined) document.getElementById("enableConflictHandling").checked = cfg.settings.conflictHandling;
+                        if (cfg.settings.selfCriticism !== undefined) document.getElementById("enableSelfCriticism").checked = cfg.settings.selfCriticism;
+                        if (cfg.settings.frameSensitivity) document.getElementById("frameSensitivity").value = cfg.settings.frameSensitivity;
+                        if (cfg.settings.consensusThreshold) document.getElementById("consensusThreshold").value = cfg.settings.consensusThreshold;
+                    }
+                    renderModelCards();
+                    updateModelSelects();
+                    updateTopicBar();
+                    addSystemMessage(currentLang === "zh" ? "✅ 配置导入成功" : "✅ Config imported");
+                } catch (err) {
+                    addSystemMessage(currentLang === "zh" ? "❌ 配置文件解析失败" : "❌ Parse failed");
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+    function toggleSortMode() {
+        sortMode = !sortMode;
+        localStorage.setItem("sort_mode", sortMode);
+        document.getElementById("toggleSortModeBtn").innerHTML = sortMode ? "🔀 " + t("sortModeActive") : "🔀 " + t("sortModeText");
+        renderModelCards();
+    }
+
+    function toggleLanguage() {
+        currentLang = currentLang === "zh" ? "en" : "zh";
+        localStorage.setItem("app_lang", currentLang);
+        location.reload();
+    }
+
+    function updateUI() {
+        document.getElementById("mainTitle").innerText = t("title");
+        document.getElementById("configLabel").innerText = t("configLabel");
+        document.getElementById("exportText").innerText = t("exportText");
+        document.getElementById("importText").innerText = t("importText");
+        document.getElementById("clearKeysText").innerText = t("clearKeysText");
+        document.getElementById("saveKeysText").innerText = t("saveKeysText");
+        document.getElementById("topicPrefix").innerText = t("topicPrefix");
+        document.getElementById("sendText").innerText = t("sendText");
+        document.getElementById("stopSendText").innerText = t("stopSendText");
+        document.getElementById("continueText").innerText = t("continueText");
+        document.getElementById("uploadText").innerText = t("uploadText");
+        document.getElementById("clearAttachText").innerText = t("clearAttachText");
+        document.getElementById("cnkiText").innerText = t("cnkiText");
+        document.getElementById("summarizeText").innerText = t("summarizeText");
+        document.getElementById("memoryBtnText").innerText = t("memoryBtnText");
+        document.getElementById("exportMdText").innerText = t("exportMdText");
+        document.getElementById("exportPdfText").innerText = t("exportPdfText");
+        document.getElementById("clearKeepText").innerText = t("clearKeepText");
+        document.getElementById("cleanOldText").innerText = t("cleanOldText");
+        document.getElementById("discussPeopleLabel").innerText = t("discussPeopleLabel");
+        document.getElementById("twoPeople").innerText = t("twoPeople");
+        document.getElementById("threePeople").innerText = t("threePeople");
+        document.getElementById("untilConsensusText").innerText = t("untilConsensusText");
+        document.getElementById("startAutoText").innerText = t("startAutoText");
+        document.getElementById("stopAutoText").innerText = t("stopAutoText");
+        document.getElementById("smartTeamText").innerText = t("smartTeamText");
+        document.getElementById("memoryModalTitle").innerText = t("memoryModalTitle");
+        document.getElementById("closeModalText").innerText = t("closeModalText");
+        document.getElementById("fullContentTitle").innerText = t("fullContentTitle");
+        document.getElementById("closeFullText").innerText = t("closeFullText");
+        document.getElementById("langBtnText").innerText = t("langBtnText");
+        document.getElementById("teamPerceptionText").innerText = t("teamPerceptionText");
+        document.getElementById("serialModeText").innerText = t("serialModeText");
+        document.getElementById("cognitiveContinuityText").innerText = t("cognitiveContinuityText");
+        document.getElementById("conflictHandlingText").innerText = t("conflictHandlingText");
+        document.getElementById("selfCriticismText").innerText = t("selfCriticismText");
+        document.getElementById("sensitivityLabel").innerText = t("sensitivityLabel");
+        document.getElementById("resetFrameText").innerText = t("resetFrameText");
+        document.getElementById("consensusThresholdLabel").innerText = t("consensusThresholdLabel");
+        const opts = I18N[currentLang].purposeOptions;
+        const purposeSelect = document.getElementById("purposeMode");
+        purposeSelect.innerHTML = Object.entries(opts).map(([v,l]) => `<option value="${v}">${l}</option>`).join("");
+        document.getElementById("customModeInput").placeholder = tPlaceholder("customMode");
+        document.getElementById("roleA").placeholder = tPlaceholder("roleA");
+        document.getElementById("roleB").placeholder = tPlaceholder("roleB");
+        document.getElementById("topicInput").placeholder = tPlaceholder("topic");
+        document.getElementById("userInput").placeholder = tPlaceholder("userInput");
+        document.getElementById("toggleSortModeBtn").innerHTML = sortMode ? "🔀 " + t("sortModeActive") : "🔀 " + t("sortModeText");
+    }
+
+    function bindEvents() {
+        document.getElementById("sendBtn").onclick = sendManual;
+        document.getElementById("stopSendBtn").onclick = stopManualSend;
+        document.getElementById("continueBtn").onclick = async () => {
+            if (lastAIMessage) {
+                await callModel(lastAIMessage.modelId, "请继续完成上一条回复。", null, false, false, null, 1);
+            } else {
+                addSystemMessage(currentLang === "zh" ? "无可继续的消息" : "No message to continue");
+            }
+        };
+        // 上传按钮已在之前绑定，不再重复
+        document.getElementById("cnkiBtn").onclick = () => {
+            const kw = prompt(currentLang === "zh" ? "关键词" : "Keyword");
+            const txt = prompt(currentLang === "zh" ? "粘贴摘要" : "Paste abstract");
+            if (kw && txt) addMessage("attachment", `【CNKI Reference】Keyword: ${kw}\n${txt}`);
+        };
+        document.getElementById("clearLastAttachmentBtn").onclick = () => {
+            const last = document.querySelector(".message.attachment:last-child");
+            if (last) last.remove();
+        };
+        document.getElementById("clearKeepMemoryBtn").onclick = clearChatKeepMemory;
+        document.getElementById("cleanOldMsgBtn").onclick = cleanOldMessagesManually;
+        document.getElementById("summarizeBtn").onclick = summarizeAndRemember;
+        document.getElementById("openMemoryBtn").onclick = openMemoryModal;
+        document.getElementById("exportMarkdownBtn").onclick = exportMarkdown;
+        document.getElementById("exportPdfBtn").onclick = exportPdf;
+        document.getElementById("startAutoBtn").onclick = startAutoDiscussion;
+        document.getElementById("stopAutoBtn").onclick = stopAutoDiscussion;
+        document.getElementById("smartTeamBtn").onclick = smartTeam;
+        document.getElementById("saveKeysBtn").onclick = saveAllKeys;
+        document.getElementById("clearAllKeysBtn").onclick = clearAllKeys;
+        document.getElementById("exportConfigBtn").onclick = exportConfig;
+        document.getElementById("importConfigBtn").onclick = importConfig;
+        document.getElementById("langSwitchBtn").onclick = toggleLanguage;
+        document.getElementById("toggleSortModeBtn").onclick = toggleSortMode;
+        document.getElementById("resetCognitiveFrameBtn").onclick = resetCognitiveFrame;
+        document.getElementById("memoryModalCloseBtn").onclick = () => document.getElementById("memoryModal").style.display = "none";
+        document.getElementById("closeMemoryModal").onclick = () => document.getElementById("memoryModal").style.display = "none";
+        document.getElementById("fullContentModalCloseBtn").onclick = () => document.getElementById("fullContentModal").style.display = "none";
+        document.getElementById("closeFullModal").onclick = () => document.getElementById("fullContentModal").style.display = "none";
+        document.getElementById("fullContentModal").addEventListener("click", (e) => {
+            if (e.target === document.getElementById("fullContentModal")) document.getElementById("fullContentModal").style.display = "none";
+        });
+        document.querySelectorAll('input[name="discussCount"]').forEach(r => r.addEventListener("change", () => {
+            const v = document.querySelector('input[name="discussCount"]:checked').value;
+            document.getElementById("ai3Select").style.display = v === "3" ? "inline-block" : "none";
+        }));
+        document.getElementById("purposeMode").addEventListener("change", function() {
+            const v = this.value;
+            const roleDiv = document.getElementById("roleplayInputs");
+            const customDiv = document.getElementById("customModeInput");
+            roleDiv.classList.toggle("active", v === "roleplay");
+            customDiv.classList.toggle("active", v === "custom");
+            localStorage.setItem("last_purpose", v);
+        });
+        document.getElementById("roundsInput").addEventListener("change", () => localStorage.setItem("last_rounds", document.getElementById("roundsInput").value));
+        document.getElementById("untilConsensusCheckbox").addEventListener("change", () => localStorage.setItem("last_consensus", document.getElementById("untilConsensusCheckbox").checked));
+        document.getElementById("customModeInput").addEventListener("change", () => localStorage.setItem(CUSTOM_MODE_KEY, document.getElementById("customModeInput").value));
+        document.getElementById("teamPerceptionCheckbox").addEventListener("change", () => localStorage.setItem("team_perception", document.getElementById("teamPerceptionCheckbox").checked));
+        document.getElementById("serialModeCheckbox").addEventListener("change", () => localStorage.setItem("serial_mode", document.getElementById("serialModeCheckbox").checked));
+        document.getElementById("enableCognitiveContinuity").addEventListener("change", () => localStorage.setItem("cognitive_continuity", document.getElementById("enableCognitiveContinuity").checked));
+        document.getElementById("enableConflictHandling").addEventListener("change", () => localStorage.setItem("conflict_handling", document.getElementById("enableConflictHandling").checked));
+        document.getElementById("enableSelfCriticism").addEventListener("change", () => localStorage.setItem("self_criticism", document.getElementById("enableSelfCriticism").checked));
+        document.getElementById("frameSensitivity").addEventListener("change", () => localStorage.setItem("frame_sensitivity", document.getElementById("frameSensitivity").value));
+        document.getElementById("consensusThreshold").addEventListener("change", () => localStorage.setItem("consensus_threshold", document.getElementById("consensusThreshold").value));
+        document.querySelectorAll(".role-preset").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.getElementById("roleA").value = btn.dataset.a;
+                document.getElementById("roleB").value = btn.dataset.b;
+                // 自动切换到角色扮演模式
+                document.getElementById("purposeMode").value = "roleplay";
+                document.getElementById("roleplayInputs").classList.add("active");
+                document.getElementById("customModeInput").classList.remove("active");
+            });
+        });
+    }
+
+    async function healthCheckAll() {
+        for (let id in MODELS) {
+            const m = MODELS[id];
+            const statusDiv = document.getElementById(`${id}Status`);
+            if (!m.enabled || !m.apiKey) {
+                if (statusDiv) statusDiv.innerHTML = "⚪ " + (currentLang === "zh" ? "未启用" : "Disabled");
+                continue;
+            }
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 5000);
+                const messages = [{ role: "user", content: "ping" }];
+                const response = await fetch(PROXY_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ modelId: id, apiKey: m.apiKey, messages, modelName: m.model, stream: false }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeout);
+                if (response.ok) {
+                    statusDiv.innerHTML = "🟢 " + (currentLang === "zh" ? "健康" : "Healthy");
+                    statusDiv.className = "model-status healthy";
+                } else {
+                    statusDiv.innerHTML = "🔴 " + (currentLang === "zh" ? "不可用" : "Unavailable");
+                    statusDiv.className = "model-status unhealthy";
+                }
+            } catch (e) {
+                statusDiv.innerHTML = "🔴 " + (currentLang === "zh" ? "不可用" : "Unavailable");
+                statusDiv.className = "model-status unhealthy";
+            }
+        }
+    }
+
+    function initGuide() {
+        if (localStorage.getItem("guide_shown")) return;
+        const guide = document.getElementById("guideOverlay");
+        guide.style.display = "flex";
+        let step = 0;
+        const steps = [t("guide.text"), t("guide.step1"), t("guide.step2"), t("guide.step3"), t("guide.step4")];
+        const guideTitle = document.getElementById("guideTitle");
+        const guideText = document.getElementById("guideText");
+        const guideCounter = document.getElementById("guideCounter");
+        const guideNext = document.getElementById("guideNextBtn");
+        const guideSkip = document.getElementById("guideSkipBtn");
+        const guideLang = document.getElementById("guideLangBtn");
+        guideTitle.innerText = t("guide.title");
+        guideText.innerText = steps[0];
+        guideCounter.innerText = `1/${steps.length}`;
+        function updateGuideLang() {
+            guideTitle.innerText = t("guide.title");
+            steps[0] = t("guide.text");
+            steps[1] = t("guide.step1");
+            steps[2] = t("guide.step2");
+            steps[3] = t("guide.step3");
+            steps[4] = t("guide.step4");
+            guideText.innerText = steps[step];
+            guideCounter.innerText = `${step+1}/${steps.length}`;
+            guideNext.innerText = t("guide.next");
+            guideSkip.innerText = t("guide.skip");
+            guideLang.innerText = t("guide.langBtn");
+        }
+        guideLang.onclick = () => {
+            currentLang = currentLang === "zh" ? "en" : "zh";
+            localStorage.setItem("app_lang", currentLang);
+            updateUI();
+            updateGuideLang();
+        };
+        guideNext.onclick = () => {
+            step++;
+            if (step >= steps.length) {
+                guide.style.display = "none";
+                localStorage.setItem("guide_shown", "true");
+                return;
+            }
+            guideText.innerText = steps[step];
+            guideCounter.innerText = `${step+1}/${steps.length}`;
+        };
+        guideSkip.onclick = () => {
+            guide.style.display = "none";
+            localStorage.setItem("guide_shown", "true");
+        };
+    }
+
+    function init() {
+        updateUI();
+        renderModelCards();
+        loadSettings();
+        bindEvents();
+        scrollToBottom();
+        initGuide();
+        healthCheckAll();
+        setInterval(healthCheckAll, 300000);
+    }
+
+    init();
+</script>
+</body>
+</html>
